@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Wer startet wann?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: one narrow phone-first column; sticky day tabs; the next start sits on top like a race bib. */
+:root {
+  --bg: #f3f4f6;
+  --surface: #ffffff;
+  --ink: #141820;
+  --muted: #5b6372;
+  --line: #dde1e8;
+  --accent: #d9480f;
+  --accent-soft: #fde8dc;
+  --live: #1f8a4c;
+  --live-soft: #def3e7;
+  --done: #9aa1ad;
+  --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1218; --surface: #181c24; --ink: #eef0f4; --muted: #a0a8b6; --line: #2a303b;
+    --accent: #ff7a3d; --accent-soft: #3a2117; --live: #4cc77f; --live-soft: #15301f; --done: #6b7280;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1218; --surface: #181c24; --ink: #eef0f4; --muted: #a0a8b6; --line: #2a303b;
+  --accent: #ff7a3d; --accent-soft: #3a2117; --live: #4cc77f; --live-soft: #15301f; --done: #6b7280;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.wrap { max-width: 560px; margin: 0 auto; display: grid; gap: 20px; }
+header h1 { font-family: var(--display); font-weight: 800; font-size: 34px; line-height: 1; margin: 0; letter-spacing: .01em; text-transform: uppercase; text-wrap: balance; }
+header p { margin: 6px 0 0; color: var(--muted); }
+.eyebrow { font-family: var(--display); font-weight: 600; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+
+/* next start: race bib */
+.bib { background: var(--surface); border: 2px solid var(--ink); border-radius: 10px; padding: 16px; display: grid; gap: 4px; position: relative; overflow: hidden; }
+.bib::before, .bib::after { content: ""; position: absolute; top: 10px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--ink); background: var(--bg); }
+.bib::before { left: 10px; } .bib::after { right: 10px; }
+.bib .label { text-align: center; }
+.bib .who { font-family: var(--display); font-weight: 800; font-size: 44px; line-height: 1; text-align: center; text-transform: uppercase; overflow-wrap: anywhere; }
+.bib .when { text-align: center; font-variant-numeric: tabular-nums; font-size: 18px; }
+.bib .when strong { color: var(--accent); }
+.bib .also { text-align: center; color: var(--muted); font-size: 14px; }
+
+/* live strip */
+.live { display: grid; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+.live[hidden] { display: none; }
+.live .tag { font-size: 13px; font-weight: 600; color: var(--live); display: flex; align-items: center; gap: 6px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--live); animation: pulse 1.6s infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
+.runner { display: grid; gap: 4px; }
+.runner .top { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.runner .rname { font-weight: 600; }
+.runner .pct { font-variant-numeric: tabular-nums; font-size: 14px; color: var(--muted); }
+.runner .pct strong { color: var(--live); font-size: 16px; }
+.bar { height: 8px; border-radius: 999px; background: var(--live-soft); overflow: hidden; }
+.bar span { display: block; height: 100%; background: var(--live); border-radius: 999px; }
+.live .foot { font-size: 12px; color: var(--muted); margin: 0; }
+.slot .p .goal { font-size: 13px; color: var(--muted); }
+
+/* day tabs */
+.days { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 6px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.days button { font: inherit; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 6px 2px; cursor: pointer; display: grid; line-height: 1.15; }
+.days button .d { font-family: var(--display); font-weight: 700; font-size: 18px; text-transform: uppercase; }
+.days button .n { font-size: 12px; color: var(--muted); }
+.days button[aria-selected="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.days button[aria-selected="true"] .n { color: var(--bg); opacity: .75; }
+.days button:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* timeline */
+.timeline { display: grid; gap: 0; }
+.slot { display: grid; grid-template-columns: 64px 1fr; gap: 12px; padding-block: 10px; border-top: 1px solid var(--line); }
+.slot:first-child, .nowline + .slot { border-top: 0; }
+.slot time { font-family: var(--display); font-weight: 700; font-size: 24px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.people { display: grid; gap: 6px; min-width: 0; }
+.p { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.p .name { font-weight: 600; font-size: 17px; }
+.p .div { font-size: 13px; color: var(--muted); }
+.p .state { font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; margin-left: auto; }
+.p.is-live .state { background: var(--live-soft); color: var(--live); }
+.p.is-next .state { background: var(--accent-soft); color: var(--accent); }
+.slot:has(.is-next) time { color: var(--accent); }
+.slot:has(.is-done):not(:has(.p:not(.is-done))) time, .p.is-done { color: var(--done); }
+.p.is-done .div, .p.is-done .goal { color: var(--done); }
+.empty { color: var(--muted); padding: 12px 0; }
+.nowline { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--accent); padding-block: 2px; }
+.nowline::after { content: ""; flex: 1; height: 2px; background: var(--accent); }
+
+/* actions */
+.btn { font: inherit; font-weight: 600; border-radius: 8px; padding: 10px 14px; border: 1px solid var(--ink); background: var(--ink); color: var(--bg); cursor: pointer; text-decoration: none; }
+
+.join[hidden] { display: none; }
+.join { display: grid; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.join p { margin: 0; font-size: 14px; color: var(--muted); }
+.join .btn { justify-self: start; }
+.updated { font-size: 12px; color: var(--muted); }
+footer { font-size: 13px; color: var(--muted); }
+footer a { color: inherit; }
+@media (max-width: 380px) { .bib .who { font-size: 36px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Wer startet wann?</h1>
+    <p>Unsere Startzeiten auf einen Blick. Kommt an die Strecke und feuert an!</p>
+  </header>
+
+  <section class="bib" aria-live="polite" id="bib"></section>
+  <section class="live" id="live" aria-label="Gerade auf der Strecke" hidden></section>
+
+  <nav class="days" role="tablist" aria-label="Eventtag" id="days"></nav>
+  <section class="timeline" id="timeline" aria-label="Starts am gew&auml;hlten Tag"></section>
+  <p class="updated" id="updated"></p>
+
+  <section class="join" id="join" hidden>
+    <a class="btn" id="formlink" href="#" target="_blank" rel="noopener">Ich starte auch &ndash; eintragen</a>
+    <p>Deine Startzeit steht in der HYROX-Mail, die etwa 3 Tage vor dem Event kommt. Nach dem Eintragen erscheinst du hier, sobald Michael die Liste aktualisiert hat. &Auml;ndern oder l&ouml;schen: kurze Nachricht an Michael.</p>
+  </section>
+
+  <footer>Nur per Link geteilt, keine Cookies, kein Tracking. Alle Eintr&auml;ge werden nach dem Event gel&ouml;scht.</footer>
+</div>
+
+<script>
+(function () {
+  const DAYS = [
+    { id: '2026-10-28', short: 'Mi', long: 'Mittwoch, 28.10.' },
+    { id: '2026-10-29', short: 'Do', long: 'Donnerstag, 29.10.' },
+    { id: '2026-10-30', short: 'Fr', long: 'Freitag, 30.10.' },
+    { id: '2026-10-31', short: 'Sa', long: 'Samstag, 31.10.' },
+    { id: '2026-11-01', short: 'So', long: 'Sonntag, 01.11.' }
+  ];
+  const EVENT_START = new Date(2026, 9, 28).getTime(); // local midnight, first event day
+  const GOAL_DEFAULT = 90; // minutes, used when no target time is given
+  const GRACE = 15; // stay "auf der Strecke" a bit past the target time
+
+  // Link zum Google Form, leer lassen, um den Button auszublenden
+  const FORM_URL = '';
+  const DATA_URL = 'starts.csv';
+
+  let entries = [];
+
+  const $ = id => document.getElementById(id);
+  const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  const fmt = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+  const abs = e => DAYS.findIndex(d => d.id === e.day) * 1440 + toMin(e.time);
+  const dayOf = id => DAYS.find(d => d.id === id);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const goalOf = e => e.goal || GOAL_DEFAULT;
+  const isoToday = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+
+  function nowAbs() { return Math.floor((Date.now() - EVENT_START) / 60000); }
+  function nowMinOfDay() { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); }
+  function state(e) {
+    const n = nowAbs(), s = abs(e);
+    if (n >= s + goalOf(e) + GRACE) return 'done';
+    if (n >= s) return 'live';
+    return 'up';
+  }
+  function until(mins) {
+    if (mins < 60) return `in&nbsp;${mins}&nbsp;Min.`;
+    const h = Math.floor(mins / 60), m = mins % 60;
+    if (mins < 24 * 60) return `in&nbsp;${h}&nbsp;Std.${m ? '&nbsp;' + m + '&nbsp;Min.' : ''}`;
+    const days = Math.round(mins / 1440);
+    return days === 1 ? 'morgen' : `in&nbsp;${days}&nbsp;Tagen`;
+  }
+
+  let selected = null, localSelected = false;
+  try { selected = localStorage.getItem('hx-day'); localSelected = !!selected; } catch (e) {}
+  function defaultDay() {
+    const today = isoToday();
+    if (dayOf(today)) return today;
+    const n = nowAbs();
+    if (n < 0) { const first = DAYS.find(d => entries.some(e => e.day === d.id)); return first ? first.id : DAYS[0].id; }
+    return DAYS[DAYS.length - 1].id;
+  }
+  if (!dayOf(selected)) selected = defaultDay();
+
+  function render() {
+    const sorted = [...entries].sort((a, b) => abs(a) - abs(b));
+    const n = nowAbs();
+    const upcoming = sorted.filter(e => abs(e) > n);
+    const nextAbs = upcoming.length ? abs(upcoming[0]) : null;
+    const nextGroup = upcoming.filter(e => abs(e) === nextAbs);
+
+    // next start
+    if (nextGroup.length) {
+      const e = nextGroup[0], others = nextGroup.slice(1);
+      $('bib').innerHTML = `<div class="eyebrow label">Als N&auml;chstes am Start</div>
+        <div class="who">${esc(e.name)}</div>
+        <div class="when">${dayOf(e.day).long} &middot; <strong>${e.time} Uhr</strong> &middot; ${until(nextAbs - n)}</div>
+        <div class="also">${others.length ? 'In derselben Welle: ' + others.map(o => esc(o.name)).join(', ') + ' &middot; ' : ''}${esc(e.div || '')}</div>`;
+    } else if (entries.length) {
+      $('bib').innerHTML = `<div class="eyebrow label">Alle sind durch</div><div class="who">Starkes Event!</div><div class="also">Danke f&uuml;rs Anfeuern.</div>`;
+    } else {
+      $('bib').innerHTML = `<div class="eyebrow label">Noch leer</div><div class="who">Trag dich ein</div><div class="also">Sobald sich jemand eintr&auml;gt, steht hier der n&auml;chste Start.</div>`;
+    }
+
+    // live, with rough progress against each athlete's target time
+    const live = sorted.filter(e => state(e) === 'live');
+    $('live').hidden = !live.length;
+    $('live').innerHTML = live.length
+      ? `<span class="tag"><span class="dot"></span>Gerade auf der Strecke</span>` + live.map(e => {
+          const g = goalOf(e), el = n - abs(e), pct = Math.min(100, Math.round(el / g * 100));
+          const txt = el >= g ? 'Zielzeit erreicht, gleich im Ziel' : `<strong>${pct}&nbsp;%</strong> &middot; Ziel ca. ${fmt((toMin(e.time) + g) % 1440)} Uhr`;
+          return `<div class="runner"><div class="top"><span class="rname">${esc(e.name)}</span><span class="pct">${txt}</span></div><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="${esc(e.name)}"><span style="width:${pct}%"></span></div></div>`;
+        }).join('') + `<p class="foot">Gesch&auml;tzt aus Startzeit und eingetragener Zielzeit${live.some(e => !e.goal) ? ' (ohne Angabe 1:30 h)' : ''}.</p>`
+      : '';
+
+    // day tabs
+    $('days').innerHTML = DAYS.map(d => {
+      const c = entries.filter(e => e.day === d.id).length;
+      return `<button role="tab" type="button" aria-selected="${d.id === selected}" data-day="${d.id}"><span class="d">${d.short}</span><span class="n">${d.id.slice(8)}.${d.id.slice(5, 7)}. &middot; ${c}</span></button>`;
+    }).join('');
+
+    // timeline of the selected day
+    const today = sorted.filter(e => e.day === selected);
+    const slots = [];
+    for (const e of today) {
+      const last = slots[slots.length - 1];
+      if (last && last.time === e.time) last.people.push(e); else slots.push({ time: e.time, people: [e] });
+    }
+    const nowMin = nowMinOfDay();
+    let html = '', nowPlaced = selected !== isoToday();
+    for (const s of slots) {
+      if (!nowPlaced && toMin(s.time) > nowMin) { html += `<div class="nowline">Jetzt ${fmt(nowMin)}</div>`; nowPlaced = true; }
+      html += `<div class="slot"><time>${s.time}</time><div class="people">` +
+        s.people.map(p => {
+          const st = state(p), isNext = abs(p) === nextAbs;
+          const cls = st === 'live' ? 'is-live' : st === 'done' ? 'is-done' : isNext ? 'is-next' : '';
+          const label = st === 'live' ? 'l&auml;uft' : st === 'done' ? 'durch' : isNext ? 'als N&auml;chstes' : '';
+          return `<div class="p ${cls}"><span class="name">${esc(p.name)}</span>${p.div ? `<span class="div">${esc(p.div)}</span>` : ''}<span class="goal">Ziel ${Math.floor(goalOf(p) / 60)}:${String(goalOf(p) % 60).padStart(2, '0')} h</span>${label ? `<span class="state">${label}</span>` : ''}</div>`;
+        }).join('') + `</div></div>`;
+    }
+    if (!nowPlaced && slots.length) html += `<div class="nowline">Jetzt ${fmt(nowMin)}</div>`;
+    $('timeline').innerHTML = html || `<p class="empty">An diesem Tag startet noch niemand aus dem Gym.</p>`;
+  }
+
+  $('days').addEventListener('click', ev => {
+    const b = ev.target.closest('button[data-day]'); if (!b) return;
+    selected = b.dataset.day; localSelected = true;
+    try { localStorage.setItem('hx-day', selected); } catch (e) {}
+    render();
+  });
+
+  // starts.csv: Spitzname,Tag,Startzeit,Division,Zielzeit
+  function parseCsv(text) {
+    const rows = [];
+    let row = [], field = '', q = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (q) {
+        if (ch === '"' && text[i + 1] === '"') { field += '"'; i++; }
+        else if (ch === '"') q = false;
+        else field += ch;
+      } else if (ch === '"') q = true;
+      else if (ch === ',' || ch === ';') { row.push(field); field = ''; }
+      else if (ch === '\n' || ch === '\r') {
+        if (ch === '\r' && text[i + 1] === '\n') i++;
+        row.push(field); rows.push(row); row = []; field = '';
+      } else field += ch;
+    }
+    if (field || row.length) { row.push(field); rows.push(row); }
+    return rows.map(r => r.map(c => c.trim())).filter(r => r.some(c => c));
+  }
+  function toEntries(rows) {
+    const out = [];
+    rows.slice(1).forEach(r => {
+      const [name, dayRaw, timeRaw, div, goalRaw] = r;
+      const dm = (dayRaw || '').match(/(\d{1,2})\.(\d{1,2})\./) || (dayRaw || '').match(/\d{4}-(\d{2})-(\d{2})/);
+      if (!name || !dm) return;
+      const iso = dayRaw.includes('-') ? dayRaw.match(/\d{4}-\d{2}-\d{2}/)[0] : `2026-${dm[2].padStart(2, '0')}-${dm[1].padStart(2, '0')}`;
+      const t = (timeRaw || '').match(/(\d{1,2})[:.](\d{2})/);
+      if (!dayOf(iso) || !t) return;
+      const e = { name: name.slice(0, 60), day: iso, time: t[1].padStart(2, '0') + ':' + t[2], div: div || '' };
+      const g = (goalRaw || '').match(/^(\d+):(\d{2})/), gm = (goalRaw || '').match(/^(\d+)$/);
+      if (g) e.goal = Number(g[1]) * 60 + Number(g[2]); else if (gm) e.goal = Number(gm[1]);
+      out.push(e);
+    });
+    return out;
+  }
+
+  function stamp() { $('updated').textContent = 'Stand ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr, aktualisiert sich automatisch.'; }
+  function reload() {
+    return fetch(DATA_URL + '?t=' + Date.now(), { cache: 'no-store' })
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })
+      .then(text => {
+        entries = toEntries(parseCsv(text));
+        if (!dayOf(selected) || (!localSelected && !entries.some(e => e.day === selected))) selected = defaultDay();
+        render(); stamp();
+      })
+      .catch(() => { $('updated').textContent = 'Die Startliste konnte gerade nicht geladen werden. Seite neu laden hilft meistens.'; });
+  }
+
+  if (FORM_URL) { $('formlink').href = FORM_URL; $('join').hidden = false; }
+  render();
+  reload();
+  setInterval(render, 30 * 1000);       // progress bars and "now" line
+  setInterval(reload, 2 * 60 * 1000);   // new entries after an update of starts.csv
+})();
+</script>
+</body>
+</html>

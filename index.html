@@ -224,10 +224,11 @@ footer a { color: inherit; }
     $('live').hidden = !live.length;
     $('live').innerHTML = live.length
       ? `<span class="tag"><span class="dot"></span>Gerade auf der Strecke</span>` + live.map(e => {
+          if (e.noGoal) return `<div class="runner"><div class="top"><span class="rname">${esc(e.name)}</span><span class="pct">l&auml;uft</span></div></div>`;
           const g = goalOf(e), el = n - abs(e), pct = Math.min(100, Math.round(el / g * 100));
           const txt = el >= g ? 'Zielzeit erreicht, gleich im Ziel' : `<strong>${pct}&nbsp;%</strong> &middot; Ziel ca. ${fmt((toMin(e.time) + g) % 1440)} Uhr`;
           return `<div class="runner"><div class="top"><span class="rname">${esc(e.name)}</span><span class="pct">${txt}</span></div><div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="${esc(e.name)}"><span style="width:${pct}%"></span></div></div>`;
-        }).join('') + `<p class="foot">Gesch&auml;tzt aus Startzeit und eingetragener Zielzeit${live.some(e => !e.goal) ? ' (ohne Angabe 1:30 h)' : ''}.</p>`
+        }).join('') + `<p class="foot">Gesch&auml;tzt aus Startzeit und eingetragener Zielzeit${live.some(e => !e.goal && !e.noGoal) ? ' (ohne Angabe 1:30 h)' : ''}.</p>`
       : '';
 
     // day tabs
@@ -252,7 +253,7 @@ footer a { color: inherit; }
           const st = state(p), isNext = abs(p) === nextAbs;
           const cls = st === 'live' ? 'is-live' : st === 'done' ? 'is-done' : isNext ? 'is-next' : '';
           const label = st === 'live' ? 'l&auml;uft' : st === 'done' ? 'durch' : isNext ? 'als N&auml;chstes' : '';
-          return `<div class="p ${cls}"><span class="name">${esc(p.name)}</span>${p.div ? `<span class="div">${esc(p.div)}</span>` : ''}<span class="goal">Ziel ${Math.floor(goalOf(p) / 60)}:${String(goalOf(p) % 60).padStart(2, '0')} h</span>${label ? `<span class="state">${label}</span>` : ''}</div>`;
+          return `<div class="p ${cls}"><span class="name">${esc(p.name)}</span>${p.div ? `<span class="div">${esc(p.div)}</span>` : ''}${p.noGoal ? '' : `<span class="goal">Ziel ${Math.floor(goalOf(p) / 60)}:${String(goalOf(p) % 60).padStart(2, '0')} h</span>`}${label ? `<span class="state">${label}</span>` : ''}</div>`;
         }).join('') + `</div></div>`;
     }
     if (!nowPlaced && slots.length) html += `<div class="nowline">Jetzt ${fmt(nowMin)}</div>`;
@@ -298,6 +299,7 @@ footer a { color: inherit; }
       const e = { name: name.slice(0, 60), day: iso, time: t[1].padStart(2, '0') + ':' + t[2], div: div || '' };
       const g = (goalRaw || '').match(/^(\d+):(\d{2})/), gm = (goalRaw || '').match(/^(\d+)$/);
       if (g) e.goal = Number(g[1]) * 60 + Number(g[2]); else if (gm) e.goal = Number(gm[1]);
+      else if ((goalRaw || '').trim() === '-') e.noGoal = true; // "-": keine Zielzeit anzeigen
       out.push(e);
     });
     return out;
